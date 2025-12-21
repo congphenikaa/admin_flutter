@@ -24,7 +24,7 @@ const App = () => {
         <Login setToken={setToken} />
       ) : (
         <div className="flex items-start min-h-screen">
-          <Sidebar />
+          <Sidebar setToken={setToken}/>
           
           <div className="flex-1 h-screen overflow-y-scroll bg-[#F3FFF7]">
             
