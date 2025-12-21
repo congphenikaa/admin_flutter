@@ -5,6 +5,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from "./pages/Login.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import SongManager from "./pages/songs/SongManager.jsx"; 
+import ArtistManager from "./pages/artists/ArtistManager.jsx";
+import AlbumManager from "./pages/albums/AlbumManager.jsx";
+import CategoryManager from "./pages/categories/CategoryManager.jsx";
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '');
@@ -32,6 +35,9 @@ const App = () => {
                     
                     {/* Route duy nhất quản lý tất cả về bài hát */}
                     <Route path='/songs' element={<SongManager />} />
+                    <Route path='/artists' element={<ArtistManager />} />
+                    <Route path='/albums' element={<AlbumManager />} />
+                    <Route path='/categories' element={<CategoryManager />} />
                 </Routes>
             </div>
           </div>
