@@ -1,6 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom' 
-import login_icon from '../assets/logout_icon.png'
+import logout_icon from '../assets/logout_icon.png'
 import song_icon from '../assets/song_icon.png'
 import artist_icon from '../assets/artist_icon.png'
 import album_icon from '../assets/album_icon.png'
@@ -58,7 +58,7 @@ const Sidebar = ({ setToken }) => {
                 className='flex items-center gap-2.5 p-2 pr-[max(8vw,10px)] text-sm font-medium bg-white text-gray-800 border border-black cursor-pointer hover:bg-red-100 w-full sm:w-auto'
             >
                 {/* Bạn có thể thay đổi icon bên dưới thành icon logout nếu có */}
-                <img src={login_icon} className='w-5 rotate-180' alt="Logout" /> 
+                <img src={logout_icon} className='w-5 rotate-180' alt="Logout" /> 
                 <p className='hidden sm:block'>Đăng xuất</p>
             </button>
         </div>
