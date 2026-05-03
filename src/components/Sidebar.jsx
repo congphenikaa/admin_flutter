@@ -1,69 +1,132 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom' 
-import logout_icon from '../assets/logout_icon.png'
-import song_icon from '../assets/song_icon.png'
-import artist_icon from '../assets/artist_icon.png'
-import album_icon from '../assets/album_icon.png'
-import category_icon from '../assets/category_icon.png'
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
+const Sidebar = ({ setToken, setRole }) => {
+    const [isCatalogOpen, setIsCatalogOpen] = useState(true);
+    const location = useLocation();
 
-const Sidebar = ({ setToken }) => { 
+    const logout = () => {
+        setToken('');
+        if (setRole) setRole('');
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+    };
 
-  const logout = () => {
-    setToken(''); // Xóa token trong state
-    localStorage.removeItem('token'); // Xóa token trong localStorage (để chắc chắn)
-  }
+    const isCatalogActive = location.pathname.includes('/admin/catalog');
 
-  return (
-    <div className='bg-[#003A10] min-h-screen pl-[4vw]'>
-        <div className='text-white text-3xl font-bold mt-5 mb-10'>
-            Spotify Admin
-        </div>
+    return (
+        <aside className="w-[260px] min-w-[260px] bg-white border-r border-[#e1e1ee] flex flex-col h-screen hidden lg:flex shrink-0">
+            <div className="h-[64px] border-b border-[#e1e1ee] flex items-center px-6 gap-3 shrink-0">
+                <div className="w-8 h-8 bg-[#0f62fe] rounded-md flex items-center justify-center text-white">
+                    <span className="material-symbols-outlined text-[20px]">graphic_eq</span>
+                </div>
+                <h1 className="text-xl font-bold tracking-tight text-[#191b24]">CMS Admin</h1>
+            </div>
 
-        <div className='flex flex-col gap-5 mt-10'>
-            <NavLink 
-              to='/songs' 
-              className={({isActive}) => `flex items-center gap-2.5 p-2 pr-[max(8vw,10px)] text-sm font-medium ${isActive ? 'bg-green-600 text-white' : 'bg-white text-gray-800 border border-black'}`}>
-                <img src={song_icon} className='w-5' alt="" />
-                <p className='hidden sm:block'>Quản lý Bài hát</p>
-            </NavLink>
+            <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar">
 
-            <NavLink 
-              to='/artists' 
-              className={({isActive}) => `flex items-center gap-2.5 p-2 pr-[max(8vw,10px)] text-sm font-medium ${isActive ? 'bg-green-600 text-white' : 'bg-white text-gray-800 border border-black'}`}
-            >
-                <img src={artist_icon} className='w-5' alt="" /> 
-                <p className='hidden sm:block'>Quản lý Nghệ sĩ</p>
-            </NavLink>
+                <NavLink 
+                    to='/admin/dashboard' 
+                    className={({isActive}) => `
+                        flex items-center gap-3 px-3 py-2.5 rounded-sm transition-colors text-sm font-medium
+                        ${isActive ? 'bg-[#f2f3ff] text-[#0f62fe] relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#0f62fe] before:rounded-r-sm' : 'text-[#424656] hover:bg-[#ecedfa] hover:text-[#191b24]'}
+                    `}
+                >
+                    <span className="material-symbols-outlined text-[20px]">dashboard</span>
+                    Dashboard
+                </NavLink>
 
-            <NavLink 
-              to='/albums' 
-              className={({isActive}) => `flex items-center gap-2.5 p-2 pr-[max(8vw,10px)] text-sm font-medium ${isActive ? 'bg-green-600 text-white' : 'bg-white text-gray-800 border border-black'}`}
-            >
-                <img src={album_icon} className='w-5' alt="" /> 
-                <p className='hidden sm:block'>Quản lý Album</p>
-            </NavLink>
+                <NavLink 
+                    to='/admin/moderation' 
+                    className={({isActive}) => `
+                        flex items-center gap-3 px-3 py-2.5 rounded-sm transition-colors text-sm font-medium
+                        ${isActive ? 'bg-[#f2f3ff] text-[#0f62fe] relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#0f62fe] before:rounded-r-sm' : 'text-[#424656] hover:bg-[#ecedfa] hover:text-[#191b24]'}
+                    `}
+                >
+                    <span className="material-symbols-outlined text-[20px]">shield</span>
+                    Moderation Queue
+                </NavLink>
 
-            <NavLink 
-              to='/categories' 
-              className={({isActive}) => `flex items-center gap-2.5 p-2 pr-[max(8vw,10px)] text-sm font-medium ${isActive ? 'bg-green-600 text-white' : 'bg-white text-gray-800 border border-black'}`}
-            >
-                <img src={category_icon} className='w-5' alt="" /> 
-                <p className='hidden sm:block'>Quản lý Thể loại</p>
-            </NavLink>
-        </div>
-        <div className='mt-10'>
-            <button 
-                onClick={logout}
-                className='flex items-center gap-2.5 p-2 pr-[max(8vw,10px)] text-sm font-medium bg-white text-gray-800 border border-black cursor-pointer hover:bg-red-100 w-full sm:w-auto'
-            >
-                {/* Bạn có thể thay đổi icon bên dưới thành icon logout nếu có */}
-                <img src={logout_icon} className='w-5 rotate-180' alt="Logout" /> 
-                <p className='hidden sm:block'>Đăng xuất</p>
-            </button>
-        </div>
-    </div>
-  )
-}
+                <div>
+                    <button 
+                        onClick={() => setIsCatalogOpen(!isCatalogOpen)}
+                        className={`
+                            w-full flex items-center justify-between px-3 py-2.5 rounded-sm transition-colors text-sm font-medium
+                            ${isCatalogActive && !isCatalogOpen ? 'text-[#0f62fe]' : 'text-[#424656]'}
+                            hover:bg-[#ecedfa] hover:text-[#191b24]
+                        `}
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-[20px]">folder_open</span>
+                            Catalog
+                        </div>
+                        <span className={`material-symbols-outlined text-[18px] transition-transform duration-200 ${isCatalogOpen ? 'rotate-180' : ''}`}>
+                            expand_more
+                        </span>
+                    </button>
 
-export default Sidebar
+                    {/* Danh sách con của Catalog */}
+                    {isCatalogOpen && (
+                        <div className="mt-1 ml-4 pl-3 border-l border-[#c3c6d8] space-y-1">
+                            <NavLink 
+                                to='/admin/catalog/songs' 
+                                className={({isActive}) => `
+                                    flex items-center gap-3 px-3 py-2 rounded-sm transition-colors text-sm font-medium
+                                    ${isActive ? 'bg-[#f2f3ff] text-[#0f62fe]' : 'text-[#737687] hover:bg-[#ecedfa] hover:text-[#191b24]'}
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">music_note</span>
+                                Songs
+                            </NavLink>
+                            
+                            <NavLink 
+                                to='/admin/catalog/artists' 
+                                className={({isActive}) => `
+                                    flex items-center gap-3 px-3 py-2 rounded-sm transition-colors text-sm font-medium
+                                    ${isActive ? 'bg-[#f2f3ff] text-[#0f62fe]' : 'text-[#737687] hover:bg-[#ecedfa] hover:text-[#191b24]'}
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">mic_external_on</span>
+                                Artists
+                            </NavLink>
+                            
+                            <NavLink 
+                                to='/admin/catalog/albums' 
+                                className={({isActive}) => `
+                                    flex items-center gap-3 px-3 py-2 rounded-sm transition-colors text-sm font-medium
+                                    ${isActive ? 'bg-[#f2f3ff] text-[#0f62fe]' : 'text-[#737687] hover:bg-[#ecedfa] hover:text-[#191b24]'}
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">album</span>
+                                Albums
+                            </NavLink>
+                            
+                            <NavLink 
+                                to='/admin/catalog/categories' 
+                                className={({isActive}) => `
+                                    flex items-center gap-3 px-3 py-2 rounded-sm transition-colors text-sm font-medium
+                                    ${isActive ? 'bg-[#f2f3ff] text-[#0f62fe]' : 'text-[#737687] hover:bg-[#ecedfa] hover:text-[#191b24]'}
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">category</span>
+                                Categories
+                            </NavLink>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="p-4 border-t border-[#e1e1ee]">
+                <button 
+                    onClick={logout}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium text-[#ba1a1a] hover:bg-[#ffdad6]"
+                >
+                    <span className="material-symbols-outlined text-[20px]">logout</span>
+                    Logout
+                </button>
+            </div>
+        </aside>
+    );
+};
+
+export default Sidebar;

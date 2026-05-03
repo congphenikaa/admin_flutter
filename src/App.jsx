@@ -1,47 +1,64 @@
 import React, { useEffect, useState } from "react";
 import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from "./pages/Login.jsx";
-import Sidebar from "./components/Sidebar.jsx";
-import SongManager from "./pages/songs/SongManager.jsx"; 
-import ArtistManager from "./pages/artists/ArtistManager.jsx";
-import AlbumManager from "./pages/albums/AlbumManager.jsx";
-import CategoryManager from "./pages/categories/CategoryManager.jsx";
+import Login from "./pages/auth/Login.jsx";
+import AdminLayout from "./layouts/AdminLayout.jsx";
+import AdminDashboard from "./pages/admin/dashboard/AdminDashboard.jsx";
+import ModerationManager from "./pages/admin/moderation/ModerationManager.jsx";
+import SongManager from "./pages/admin/catalog/songs/SongManager.jsx";
+import ArtistManager from "./pages/admin/catalog/artists/ArtistManager.jsx";
+import AlbumManager from "./pages/admin/catalog/albums/AlbumManager.jsx";
+import CategoryManager from "./pages/admin/catalog/categories/CategoryManager.jsx";
 
 const App = () => {
-  const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '');
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [role, setRole] = useState(localStorage.getItem('role') || '');
+
+  // Cập nhật Storage an toàn khi State thay đổi
+  useEffect(() => {
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
+  }, [token]);
 
   useEffect(() => {
-    localStorage.setItem('token', token);
-  }, [token]);
+    if (role) localStorage.setItem('role', role);
+    else localStorage.removeItem('role');
+  }, [role]);
+
+  // Handle Logout nhanh
+  const handleLogout = () => {
+    setToken('');
+    setRole('');
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <ToastContainer position="top-right" autoClose={3000} />
 
       {token === '' ? (
-        <Login setToken={setToken} />
+        // Truyền cả setRole vào Login
+        <Login setToken={setToken} setRole={setRole} />
       ) : (
-        <div className="flex items-start min-h-screen">
-          <Sidebar setToken={setToken}/>
+        <Routes>
+          {/* Mặc định điều hướng dựa vào Role */}
+          <Route path="/" element={<Navigate to={role === 'admin' ? '/admin' : '/studio'} />} />
           
-          <div className="flex-1 h-screen overflow-y-scroll bg-[#F3FFF7]">
-            
-            <div className="flex w-full"> 
-                <Routes>
-                    {/* Mặc định vào trang Songs luôn */}
-                    <Route path='/' element={<Navigate to="/songs" />} />
-                    
-                    {/* Route duy nhất quản lý tất cả về bài hát */}
-                    <Route path='/songs' element={<SongManager />} />
-                    <Route path='/artists' element={<ArtistManager />} />
-                    <Route path='/albums' element={<AlbumManager />} />
-                    <Route path='/categories' element={<CategoryManager />} />
-                </Routes>
-            </div>
-          </div>
-        </div>
+          {/* KHU VỰC QUẢN TRỊ VIÊN (ADMIN CMS) */}
+          <Route path="/admin" element={role === 'admin' ? <AdminLayout setToken={handleLogout} /> : <Navigate to="/studio" />}>
+            <Route index element={<Navigate to="dashboard" />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="moderation" element={<ModerationManager />} />
+            <Route path="catalog/songs" element={<SongManager />} />
+            <Route path="catalog/artists" element={<ArtistManager />} />
+            <Route path="catalog/albums" element={<AlbumManager />} />
+            <Route path="catalog/categories" element={<CategoryManager />} />
+          </Route>
+
+          {/* KHU VỰC NGHỆ SĨ (CREATOR STUDIO) */}
+          <Route path="/studio" element={role === 'artist' ? <div>Trang Studio đang phát triển</div> : <Navigate to="/admin" />}>
+              {/* Sẽ lắp StudioLayout vào đây sau */}
+          </Route>
+        </Routes>
       )}
     </div>
   )

@@ -1,0 +1,133 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+
+const AddArtist = ({ setView, fetchArtists, url }) => {
+    const [loading, setLoading] = useState(false);
+    const [name, setName] = useState("");
+    const [bio, setBio] = useState("");
+    const [image, setImage] = useState(false);
+    const [verified, setVerified] = useState(false);
+
+    const onSubmitHandler = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("bio", bio);
+            formData.append("image", image);
+            formData.append("verified", verified);
+
+            const response = await axios.post(`${url}/api/artist/add`, formData);
+
+            if (response.data.success) {
+                toast.success(response.data.message);
+                await fetchArtists(); // Cập nhật lại list ở cha
+                setView('list'); // Quay về trang list
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Có lỗi xảy ra");
+        }
+        setLoading(false);
+    };
+
+    return (
+        <div className="w-full h-full flex flex-col bg-white">
+            {/* Header */}
+            <div className="p-6 border-b border-[#e1e1ee] flex justify-between items-center bg-[#f2f3ff]/50 shrink-0">
+                <h2 className="text-xl font-bold text-[#191b24]">Thêm Nghệ sĩ</h2>
+                <button onClick={() => setView('list')} className="text-[#737687] hover:bg-[#ecedfa] p-1.5 rounded-md transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            {/* Form Body */}
+            <div className="p-6 flex-1 overflow-y-auto space-y-6">
+
+                {/* Verified Badge Toggle Component */}
+                <div className="p-4 rounded-lg border border-[#b4c5ff] bg-[#f2f3ff]/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#0f62fe] border border-[#b4c5ff] shadow-sm">
+                            <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>verified</span>
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-[#191b24]">Cấp Tích Xanh (Verified)</p>
+                            <p className="text-[11px] text-[#0f62fe] font-medium">Nổi bật nghệ sĩ trên hệ thống</p>
+                        </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={verified} onChange={() => setVerified(!verified)} />
+                        <div className="w-11 h-6 bg-[#c3c6d8] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0f62fe]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f62fe]"></div>
+                    </label>
+                </div>
+
+                {/* Circular Avatar Upload */}
+                <div>
+                    <label className="block text-sm font-semibold text-[#191b24] mb-2">Ảnh đại diện (Avatar)</label>
+                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#c3c6d8] rounded-lg bg-[#faf8ff] hover:bg-[#f2f3ff] hover:border-[#0f62fe] transition-all relative group">
+                        <input
+                            type="file"
+                            required
+                            onChange={(e) => setImage(e.target.files[0])}
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        {image ? (
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#e1e1ee] shadow-md mb-2">
+                                <img src={URL.createObjectURL(image)} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center mb-3 border border-[#e1e1ee]">
+                                <span className="material-symbols-outlined text-[#0f62fe] text-[32px]">person_add</span>
+                            </div>
+                        )}
+                        <p className="text-sm font-semibold text-[#191b24] mb-1">{image ? "Thay đổi ảnh" : "Tải ảnh đại diện lên"}</p>
+                        <p className="text-[11px] text-[#737687]">Khuyến nghị ảnh vuông tỉ lệ 1:1</p>
+                    </div>
+                </div>
+
+                {/* Artist Name */}
+                <div>
+                    <label className="block text-sm font-semibold text-[#191b24] mb-2">Tên nghệ sĩ</label>
+                    <input
+                        className="w-full border border-[#c3c6d8] rounded-md py-2.5 px-3 text-sm text-[#191b24] focus:ring-2 focus:ring-[#0f62fe]/20 focus:border-[#0f62fe] outline-none transition-all placeholder:text-[#737687]"
+                        type="text"
+                        required
+                        placeholder="VD: Sơn Tùng M-TP"
+                        value={name}
+                        onChange={(e)=>setName(e.target.value)}
+                    />
+                </div>
+
+                {/* Bio Textarea */}
+                <div>
+                    <label className="block text-sm font-semibold text-[#191b24] mb-2">Tiểu sử (Bio)</label>
+                    <textarea
+                        className="w-full border border-[#c3c6d8] rounded-md py-2.5 px-3 text-sm text-[#191b24] focus:ring-2 focus:ring-[#0f62fe]/20 focus:border-[#0f62fe] outline-none transition-all placeholder:text-[#737687]"
+                        placeholder="Nhập thông tin giới thiệu về nghệ sĩ..."
+                        rows={4}
+                        value={bio}
+                        onChange={(e)=>setBio(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-6 border-t border-[#e1e1ee] flex gap-3 bg-[#faf8ff] shrink-0">
+                <button type="button" onClick={() => setView('list')} className="flex-1 py-2.5 bg-white border border-[#c3c6d8] rounded-md text-[#424656] text-sm font-semibold hover:bg-[#f2f3ff] transition-colors">
+                    Hủy bỏ
+                </button>
+                <button type="button" onClick={onSubmitHandler} disabled={loading} className="flex-1 py-2.5 bg-[#0f62fe] text-white rounded-md text-sm font-semibold shadow-sm hover:bg-[#004ccd] transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
+                    {loading ? 'Đang lưu...' : 'Lưu Nghệ sĩ'}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default AddArtist;
