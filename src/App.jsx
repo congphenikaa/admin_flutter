@@ -66,13 +66,6 @@ const App = () => {
             <Route path="albums" element={<ArtistAlbumManager />} />
           </Route>
 
-          {/* Artist alias route for plan compatibility */}
-          <Route path="/artist" element={role === 'artist' ? <StudioLayout setToken={handleLogout} setRole={setRole} /> : <Navigate to="/admin" />}>
-            <Route index element={<Navigate to="dashboard" />} />
-            <Route path="dashboard" element={<ArtistDashboard />} />
-            <Route path="tracks" element={<ContentManager />} />
-            <Route path="albums" element={<ArtistAlbumManager />} />
-          </Route>
         </Routes>
       )}
     </div>
