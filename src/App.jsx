@@ -3,12 +3,16 @@ import { ToastContainer } from 'react-toastify';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from "./pages/auth/Login.jsx";
 import AdminLayout from "./layouts/AdminLayout.jsx";
+import StudioLayout from "./layouts/StudioLayout.jsx";
 import AdminDashboard from "./pages/admin/dashboard/AdminDashboard.jsx";
 import ModerationManager from "./pages/admin/moderation/ModerationManager.jsx";
 import SongManager from "./pages/admin/catalog/songs/SongManager.jsx";
 import ArtistManager from "./pages/admin/catalog/artists/ArtistManager.jsx";
 import AlbumManager from "./pages/admin/catalog/albums/AlbumManager.jsx";
 import CategoryManager from "./pages/admin/catalog/categories/CategoryManager.jsx";
+import ArtistDashboard from "./pages/artist/dashboard/ArtistDashboard.jsx";
+import ContentManager from "./pages/artist/catalog/ContentManager.jsx";
+import ArtistAlbumManager from "./pages/artist/albums/AlbumManager.jsx";
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
@@ -55,8 +59,19 @@ const App = () => {
           </Route>
 
           {/* KHU VỰC NGHỆ SĨ (CREATOR STUDIO) */}
-          <Route path="/studio" element={role === 'artist' ? <div>Trang Studio đang phát triển</div> : <Navigate to="/admin" />}>
-              {/* Sẽ lắp StudioLayout vào đây sau */}
+          <Route path="/studio" element={role === 'artist' ? <StudioLayout setToken={handleLogout} setRole={setRole} /> : <Navigate to="/admin" />}>
+            <Route index element={<Navigate to="dashboard" />} />
+            <Route path="dashboard" element={<ArtistDashboard />} />
+            <Route path="tracks" element={<ContentManager />} />
+            <Route path="albums" element={<ArtistAlbumManager />} />
+          </Route>
+
+          {/* Artist alias route for plan compatibility */}
+          <Route path="/artist" element={role === 'artist' ? <StudioLayout setToken={handleLogout} setRole={setRole} /> : <Navigate to="/admin" />}>
+            <Route index element={<Navigate to="dashboard" />} />
+            <Route path="dashboard" element={<ArtistDashboard />} />
+            <Route path="tracks" element={<ContentManager />} />
+            <Route path="albums" element={<ArtistAlbumManager />} />
           </Route>
         </Routes>
       )}

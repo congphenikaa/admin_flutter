@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../../utils/api';
 import {
   XAxis,
   YAxis,
@@ -12,24 +13,58 @@ import {
 } from 'recharts';
 
 const AdminDashboard = () => {
-  const [metrics] = useState({
-    totalTracks: 142504,
+  const [metrics, setMetrics] = useState({
+    totalTracks: 0,
     trackGrowth: 12,
-    pendingReview: 342,
-    activeCreators: 18290,
+    pendingReview: 0,
+    activeCreators: 0,
     creatorGrowth: 5.2,
-    rejectionRate: 8.4,
+    rejectionRate: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   const [chartData] = useState([
-    { name: 'Mon', uploads: 4000, violations: 240 },
-    { name: 'Tue', uploads: 3000, violations: 139 },
-    { name: 'Wed', uploads: 2000, violations: 980 },
-    { name: 'Thu', uploads: 2780, violations: 390 },
-    { name: 'Fri', uploads: 1890, violations: 480 },
-    { name: 'Sat', uploads: 2390, violations: 380 },
-    { name: 'Sun', uploads: 3490, violations: 430 },
+    { name: 'Mon', uploads: 400, violations: 24 },
+    { name: 'Tue', uploads: 300, violations: 13 },
+    { name: 'Wed', uploads: 200, violations: 98 },
+    { name: 'Thu', uploads: 278, violations: 39 },
+    { name: 'Fri', uploads: 189, violations: 48 },
+    { name: 'Sat', uploads: 239, violations: 38 },
+    { name: 'Sun', uploads: 349, violations: 43 },
   ]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/admin/dashboard/stats');
+        if (res.data.success) {
+          const { totalSongs, totalArtists, songsByStatus } = res.data.data;
+
+          let pendingCount = 0;
+          let rejectedCount = 0;
+          songsByStatus.forEach(statusGroup => {
+            if (statusGroup._id === 'flagged' || statusGroup._id === 'pending_ai') pendingCount += statusGroup.count;
+            if (statusGroup._id === 'rejected') rejectedCount += statusGroup.count;
+          });
+
+          const rejectionRate = totalSongs > 0 ? ((rejectedCount / totalSongs) * 100).toFixed(1) : 0;
+
+          setMetrics(prev => ({
+            ...prev,
+            totalTracks: totalSongs,
+            activeCreators: totalArtists,
+            pendingReview: pendingCount,
+            rejectionRate: rejectionRate
+          }));
+        }
+      } catch (error) {
+        console.error("Lỗi lấy dữ liệu Admin Dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="w-full pb-10">
@@ -50,15 +85,15 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {loading ? (
+        <p className="text-[#737687]">Đang tải dữ liệu hệ thống...</p>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <div className="bg-white p-5 rounded-xl border border-[#e1e1ee] shadow-sm flex flex-col">
           <div className="flex items-start justify-between mb-3">
             <div className="w-10 h-10 rounded-lg bg-[#f2f3ff] flex items-center justify-center text-[#0f62fe]">
               <span className="material-symbols-outlined">queue_music</span>
             </div>
-            <span className="flex items-center text-xs font-bold text-[#006e2d] bg-[#e6f4ea] px-2 py-1 rounded-md border border-[#b7dfc9]">
-              <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> {metrics.trackGrowth}%
-            </span>
           </div>
           <h3 className="text-[#737687] text-sm font-semibold mb-1">Total Tracks</h3>
           <div className="text-3xl font-black text-[#191b24]">{metrics.totalTracks.toLocaleString()}</div>
@@ -83,9 +118,6 @@ const AdminDashboard = () => {
             <div className="w-10 h-10 rounded-lg bg-[#f2f3ff] flex items-center justify-center text-[#0f62fe]">
               <span className="material-symbols-outlined">group</span>
             </div>
-            <span className="flex items-center text-xs font-bold text-[#006e2d] bg-[#e6f4ea] px-2 py-1 rounded-md border border-[#b7dfc9]">
-              <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> {metrics.creatorGrowth}%
-            </span>
           </div>
           <h3 className="text-[#737687] text-sm font-semibold mb-1">Active Creators</h3>
           <div className="text-3xl font-black text-[#191b24]">{metrics.activeCreators.toLocaleString()}</div>
@@ -104,6 +136,7 @@ const AdminDashboard = () => {
           <div className="text-3xl font-black text-[#191b24]">{metrics.rejectionRate}%</div>
         </div>
       </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white border border-[#e1e1ee] rounded-xl shadow-sm flex flex-col min-h-[420px] overflow-hidden">

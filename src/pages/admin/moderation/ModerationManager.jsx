@@ -1,38 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ModerationReviewModal from './ModerationReviewModal';
+import api from '../../../utils/api';
 
 const ModerationManager = () => {
   const [selectedReview, setSelectedReview] = useState(null);
+  const [queueData, setQueueData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [queueData] = useState([
-    {
-      id: 'TRK-8921A',
-      title: 'Neon Nights',
-      artist: 'CyberPunk Audio',
-      aiScore: 82,
-      originalTrack: 'Midnight City by M83',
-      timeFlagged: '10 mins ago',
-      status: 'Critical',
-    },
-    {
-      id: 'TRK-4432B',
-      title: 'Acoustic Sunrise',
-      artist: 'John Doe',
-      aiScore: 65,
-      originalTrack: 'Morning Sun by The Beats',
-      timeFlagged: '1 hour ago',
-      status: 'Warning',
-    },
-    {
-      id: 'TRK-9912C',
-      title: 'Lofi Beats to Study',
-      artist: 'ChillGirl',
-      aiScore: 78,
-      originalTrack: 'Study Time Vol 1',
-      timeFlagged: '3 hours ago',
-      status: 'Critical',
-    },
-  ]);
+  const fetchQueue = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/admin/moderation/queue');
+      if (res.data.success) {
+        const mappedData = res.data.songs.map(song => ({
+          _id: song._id,
+          id: `TRK-${song._id.substring(0, 5).toUpperCase()}`,
+          title: song.title,
+          artist: song.artist ? song.artist.name : 'Unknown Artist',
+          aiScore: song.aiSimilarityScore || 0,
+          originalTrack: song.aiMatchedSong || 'Unknown Source',
+          timeFlagged: new Date(song.createdAt).toLocaleString(),
+          status: song.aiSimilarityScore >= 80 ? 'Critical' : 'Warning',
+          // THÊM 2 DÒNG NÀY VÀO ĐỂ MODAL NHẬN ĐƯỢC LINK NHẠC/ẢNH
+          audioUrl: song.audioUrl, 
+          imageUrl: song.imageUrl, 
+          rawSong: song
+        }));
+        setQueueData(mappedData);
+      }
+    } catch (error) {
+      console.error("Lỗi tải hàng đợi:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueue();
+  }, []);
 
   return (
     <div className="w-full pb-10">
@@ -82,9 +87,9 @@ const ModerationManager = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-[#e1e1ee] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e1e1ee] shadow-sm overflow-hidden mt-8">
         <div className="p-4 border-b border-[#e1e1ee] flex justify-between items-center bg-[#f2f3ff]/30">
-          <h2 className="font-bold text-[#191b24]">Flagged Submissions</h2>
+          <h2 className="font-bold text-[#191b24]">Flagged Submissions (Thực tế)</h2>
           <span className="bg-[#ba1a1a]/10 text-[#ba1a1a] text-xs font-bold px-2.5 py-1 rounded border border-[#ba1a1a]/20">
             {queueData.length} Action Needed
           </span>
@@ -102,8 +107,12 @@ const ModerationManager = () => {
               </tr>
             </thead>
             <tbody>
-              {queueData.map((item) => (
-                <tr key={item.id} className="hover:bg-[#faf8ff] transition-colors group">
+              {loading ? (
+                 <tr><td colSpan="5" className="p-5 text-center text-[#737687]">Đang tải danh sách chờ duyệt...</td></tr>
+              ) : queueData.length === 0 ? (
+                 <tr><td colSpan="5" className="p-5 text-center text-[#006e2d] font-bold">Hệ thống sạch! Không có bài hát nào vi phạm.</td></tr>
+              ) : queueData.map((item) => (
+                <tr key={item._id} className="hover:bg-[#faf8ff] transition-colors group">
                   <td className="py-4 px-5 border-b border-[#e1e1ee]">
                     <p className="font-mono text-sm text-[#191b24] font-medium">{item.id}</p>
                     <p className="text-xs text-[#737687] mt-0.5">{item.timeFlagged}</p>
@@ -146,7 +155,13 @@ const ModerationManager = () => {
         </div>
       </div>
 
-      {selectedReview && <ModerationReviewModal data={selectedReview} onClose={() => setSelectedReview(null)} />}
+      {selectedReview && (
+        <ModerationReviewModal
+          data={selectedReview}
+          onClose={() => setSelectedReview(null)}
+          onSuccess={fetchQueue}
+        />
+      )}
     </div>
   );
 };
