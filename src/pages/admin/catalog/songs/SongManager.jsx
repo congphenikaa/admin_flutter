@@ -8,20 +8,20 @@ import EditSong from './EditSong'
 
 const SongManager = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-    
-    // 1. Consume the global search term from AdminLayout
     const { globalSearch } = useOutletContext();
-    
+
     const [view, setView] = useState('list');
     const [songs, setSongs] = useState([]);
+    const [categories, setCategories] = useState([]); 
     const [editingId, setEditingId] = useState(null);
 
-    // Filter states (Replacing the old local search)
+    // Filter states
     const [statusFilter, setStatusFilter] = useState('All');
+    const [genreFilter, setGenreFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    // Hàm load dữ liệu chung cho cả 3 component sử dụng
+    // Fetch Songs
     const fetchSongs = useCallback(async () => {
         try {
             const response = await axios.get(`${backendUrl}/api/song/list`);
@@ -29,26 +29,50 @@ const SongManager = () => {
                 setSongs(response.data.songs);
             }
         } catch {
-            toast.error("Lỗi tải dữ liệu");
+            toast.error("Lỗi tải dữ liệu bài hát");
         }
     }, [backendUrl]);
 
-    // Load lần đầu
+    // Fetch Categories (Mới)
+    const fetchCategories = useCallback(async () => {
+        try {
+            const response = await axios.get(`${backendUrl}/api/category/list`);
+            if (response.data.success) {
+                setCategories(response.data.categories || []);
+            }
+        } catch {
+            console.log("Không thể tải danh sách thể loại");
+        }
+    }, [backendUrl]);
+
     useEffect(() => {
         fetchSongs();
-    }, [fetchSongs]);
+        fetchCategories(); // ← Gọi khi component mount
+    }, [fetchSongs, fetchCategories]);
 
-    // --- APPLY FILTERS & GLOBAL SEARCH ---
+    // === FILTER LOGIC ===
     const filteredSongs = songs.filter(song => {
-        // 1. Check Global Search (by name, artist, etc.)
+        // Global Search
         const searchMatch = globalSearch === '' ||
             song.title?.toLowerCase().includes(globalSearch.toLowerCase()) ||
-            song.desc?.toLowerCase().includes(globalSearch.toLowerCase());
+            song.description?.toLowerCase().includes(globalSearch.toLowerCase());
 
-        // 2. Check Local Filter (Placeholder logic for future status implementation)
-        const statusMatch = statusFilter === 'All' || song.status === statusFilter;
+        // Status Filter
+        let statusMatch = true;
+        if (statusFilter !== 'All') {
+            if (statusFilter === 'Live') statusMatch = song.status === 'live';
+            else if (statusFilter === 'Pending_ai') statusMatch = song.status === 'pending_ai';
+            else if (statusFilter === 'Flagged') statusMatch = song.status === 'flagged';
+        }
 
-        return searchMatch && statusMatch;
+        // Genre Filter (so sánh theo _id)
+        const genreMatch = genreFilter === 'All' || 
+            song.category?.some(cat => {
+                const catId = typeof cat === 'string' ? cat : cat._id;
+                return catId === genreFilter;
+            });
+
+        return searchMatch && statusMatch && genreMatch;
     });
 
     const totalPages = Math.ceil(filteredSongs.length / itemsPerPage);
@@ -56,7 +80,6 @@ const SongManager = () => {
 
     return (
         <div className="w-full">
-            {/* Page Header Area - only visible in list view */}
             {view === 'list' && (
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -66,7 +89,7 @@ const SongManager = () => {
 
                     <button
                         onClick={() => setView('add')}
-                        className="px-4 py-2 bg-[#0f62fe] text-white rounded-md text-sm font-semibold hover:bg-[#004ccd] transition-colors shadow-sm flex items-center gap-2"
+                        className="px-4 py-2 bg-[#0f62fe] text-white rounded-md text-sm font-semibold hover:bg-[#004ccd] flex items-center gap-2"
                     >
                         <span className="material-symbols-outlined text-[18px]">add</span>
                         Upload New Track
@@ -74,21 +97,24 @@ const SongManager = () => {
                 </div>
             )}
 
-            {/* List View */}
             {view === 'list' && (
                 <div className="bg-white rounded-lg border border-[#e1e1ee] shadow-sm flex flex-col">
 
-                    {/* Filter Bar (Replaced old local search) */}
-                    <div className="p-4 border-b border-[#e1e1ee] flex items-center gap-4 bg-[#f2f3ff]/30">
+                    {/* FILTER BAR */}
+                    <div className="p-4 border-b border-[#e1e1ee] flex items-center gap-4 bg-[#f2f3ff]/30 flex-wrap">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[#737687] text-[18px]">filter_list</span>
                             <span className="text-sm font-semibold text-[#424656]">Filters:</span>
                         </div>
 
+                        {/* Status Filter */}
                         <select
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-white border border-[#c3c6d8] text-[#191b24] text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#0f62fe] focus:border-[#0f62fe]"
+                            onChange={(e) => {
+                                setStatusFilter(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="bg-white border border-[#c3c6d8] text-[#191b24] text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#0f62fe]"
                         >
                             <option value="All">All Statuses</option>
                             <option value="Published">Published</option>
@@ -96,13 +122,24 @@ const SongManager = () => {
                             <option value="Flagged">Flagged by AI</option>
                         </select>
 
-                        <select className="bg-white border border-[#c3c6d8] text-[#191b24] text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#0f62fe] focus:border-[#0f62fe]">
+                        {/* Genre Filter - Động */}
+                        <select
+                            value={genreFilter}
+                            onChange={(e) => {
+                                setGenreFilter(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="bg-white border border-[#c3c6d8] text-[#191b24] text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#0f62fe]"
+                        >
                             <option value="All">All Genres</option>
-                            {/* Fetch categories dynamically later */}
+                            {categories.map((cat) => (
+                                <option key={cat._id} value={cat._id}>
+                                    {cat.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
-                    {/* Render Child Component */}
                     <div className="p-0">
                         <ListSong
                             songs={currentData}
@@ -115,21 +152,13 @@ const SongManager = () => {
                     {/* Pagination */}
                     {totalPages > 1 && (
                         <div className="p-4 border-t border-[#e1e1ee] flex justify-between items-center bg-[#faf8ff] rounded-b-lg">
-                            <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="px-3 py-1.5 border border-[#c3c6d8] rounded-md bg-white text-sm font-medium text-[#424656] disabled:opacity-50 hover:bg-[#f2f3ff] transition"
-                            >
+                            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border border-[#c3c6d8] rounded-md bg-white text-sm font-medium text-[#424656] disabled:opacity-50 hover:bg-[#f2f3ff]">
                                 Previous
                             </button>
                             <span className="text-sm font-medium text-[#737687]">
                                 Page <strong className="text-[#191b24]">{currentPage}</strong> of {totalPages}
                             </span>
-                            <button
-                                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                                className="px-3 py-1.5 border border-[#c3c6d8] rounded-md bg-white text-sm font-medium text-[#424656] disabled:opacity-50 hover:bg-[#f2f3ff] transition"
-                            >
+                            <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1.5 border border-[#c3c6d8] rounded-md bg-white text-sm font-medium text-[#424656] disabled:opacity-50 hover:bg-[#f2f3ff]">
                                 Next
                             </button>
                         </div>
@@ -137,12 +166,10 @@ const SongManager = () => {
                 </div>
             )}
 
-            {/* Add & Edit Views */}
             {view === 'add' && <AddSong setView={setView} fetchSongs={fetchSongs} />}
             {view === 'edit' && <EditSong setView={setView} fetchSongs={fetchSongs} editingId={editingId} songs={songs} />}
         </div>
-    )
-
-}
+    );
+};
 
 export default SongManager;
