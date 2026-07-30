@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useGoogleLogin } from '@react-oauth/google';
+import heroBackground from '../../assets/photo-1598488035139-bdbb2231ce04.jpg';
+import googleColorIcon from '../../assets/google-color.svg';
 
 const Login = ({ setToken, setRole }) => {
     const [email, setEmail] = useState('');
@@ -84,7 +86,7 @@ const Login = ({ setToken, setRole }) => {
                 <div 
                     className="absolute inset-0 z-0 opacity-50 mix-blend-luminosity"
                     style={{ 
-                        backgroundImage: "url('./src/assets/photo-1598488035139-bdbb2231ce04.jpg')", 
+                        backgroundImage: `url(${heroBackground})`, 
                         backgroundSize: 'cover', 
                         backgroundPosition: 'center' 
                     }}
@@ -173,7 +175,7 @@ const Login = ({ setToken, setRole }) => {
                         onClick={() => googleLogin()}
                         className="w-full flex items-center justify-center gap-3 bg-[#201f1f] border border-[#3d4a3d] hover:bg-[#2a2a2a] text-white font-semibold py-3 rounded-full transition-all"
                     >
-                        <img src="./src/assets/google-color.svg" alt="Google" className="w-5 h-5" />
+                        <img src={googleColorIcon} alt="Google" className="w-5 h-5" />
                         Continue with Google
                     </button>
                 </div>
