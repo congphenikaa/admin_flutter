@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../../../utils/api';
 import { toast } from 'react-toastify';
 import Select from 'react-select'; // 1. Import thư viện
 
@@ -27,9 +27,9 @@ const AddSong = ({ setView, fetchSongs }) => {
         const loadOptions = async () => {
             try {
                 const [resAlbum, resArtist, resCat] = await Promise.all([
-                    axios.get(`${url}/api/album/list`),
-                    axios.get(`${url}/api/artist/list`),
-                    axios.get(`${url}/api/category/list`)
+                    api.get(`/album/list`),
+                    api.get(`/artist/list`),
+                    api.get(`/category/list`)
                 ]);
                 if(resAlbum.data.success) setAlbumData(resAlbum.data.albums);
                 if(resArtist.data.success) setArtistData(resArtist.data.artists);
@@ -70,7 +70,7 @@ const AddSong = ({ setView, fetchSongs }) => {
             formData.append("category", category); 
             formData.append("duration", duration);
 
-            const response = await axios.post(`${url}/api/song/add`, formData);
+            const response = await api.post(`/song/add`, formData);
 
             if (response.data.success) {
                 toast.success("Thêm thành công");

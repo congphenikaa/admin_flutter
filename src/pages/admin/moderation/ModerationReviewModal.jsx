@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
+import SpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram.esm.js';
 import api from '../../../utils/api';
 
 const R2_PUBLIC_URL = import.meta.env.VITE_R2_PUBLIC_URL;
@@ -16,7 +17,9 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
 
   // Tham chiếu DOM & Wavesurfer Instances
   const userWaveRef = useRef(null);
+  const userSpecRef = useRef(null);
   const origWaveRef = useRef(null);
+  const origSpecRef = useRef(null);
   const [userWs, setUserWs] = useState(null);
   const [origWs, setOrigWs] = useState(null);
 
@@ -26,8 +29,9 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
   const [userTime, setUserTime] = useState('00:00');
   const [origTime, setOrigTime] = useState('00:00');
 
-  const matchStartTime = data?.matchStart ?? 10.0; 
-  const matchEndTime = data?.matchEnd ?? 15.0;
+  const aiMatches = data?.aiMatches && data.aiMatches.length > 0 
+    ? data.aiMatches 
+    : [{ start: data?.matchStart ?? 0.0, end: data?.matchEnd ?? 5.0, score: data?.aiScore }];
 
   useEffect(() => {
     if (!data) return;
@@ -48,15 +52,25 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
       });
 
       const wsUserRegions = wsUser.registerPlugin(RegionsPlugin.create());
+      wsUser.registerPlugin(
+        SpectrogramPlugin.create({
+          container: userSpecRef.current,
+          labels: true,
+          height: 60,
+        })
+      );
       wsUser.load(data.audioUrl);
 
       wsUser.on('decode', () => {
-        wsUserRegions.addRegion({
-          start: matchStartTime,
-          end: matchEndTime,
-          color: 'rgba(186, 26, 26, 0.25)',
-          drag: false,
-          resize: false,
+        aiMatches.forEach(match => {
+          wsUserRegions.addRegion({
+            // Dùng query_start/query_end (thời gian trên file upload)
+            start: match.query_start ?? match.start,
+            end: match.query_end ?? match.end,
+            color: 'rgba(186, 26, 26, 0.25)',
+            drag: false,
+            resize: false,
+          });
         });
       });
 
@@ -78,17 +92,27 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
     });
 
     const wsOrigRegions = wsOrig.registerPlugin(RegionsPlugin.create());
+    wsOrig.registerPlugin(
+      SpectrogramPlugin.create({
+        container: origSpecRef.current,
+        labels: true,
+        height: 60,
+      })
+    );
 
     const originalAudioLink = `${R2_PUBLIC_URL}/${data.originalTrack}`;
     wsOrig.load(originalAudioLink);
 
     wsOrig.on('decode', () => {
-      wsOrigRegions.addRegion({
-        start: matchStartTime,
-        end: matchEndTime,
-        color: 'rgba(186, 26, 26, 0.25)', 
-        drag: false,
-        resize: false,
+      aiMatches.forEach(match => {
+        wsOrigRegions.addRegion({
+          // Dùng original_start/original_end (thời gian trên bài gốc từ R2)
+          start: match.original_start ?? match.start,
+          end: match.original_end ?? match.end,
+          color: 'rgba(186, 26, 26, 0.25)', 
+          drag: false,
+          resize: false,
+        });
       });
     });
 
@@ -100,7 +124,7 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
       if (wsUser) wsUser.destroy();
       if (wsOrig) wsOrig.destroy();
     };
-  }, [data, matchStartTime, matchEndTime]);
+  }, [data]);
 
   // Các hàm điều khiển Player
   const handlePlayUser = () => {
@@ -114,15 +138,21 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
   };
 
   const jumpToMatch = () => {
+    if (!aiMatches || aiMatches.length === 0) return;
+    const firstMatch = aiMatches[0];
+    // Nhạc gốc (origWs) nhảy về original_start của bài gốc
+    const origJumpTo = firstMatch.original_start ?? firstMatch.start;
+    // File upload (userWs) nhảy về query_start của bản upload
+    const userJumpTo = firstMatch.query_start ?? firstMatch.start;
     if (origWs) {
       origWs.pause(); setIsPlayingOrig(false);
-      origWs.setTime(matchStartTime);
-      setOrigTime(formatTime(matchStartTime));
+      origWs.setTime(origJumpTo);
+      setOrigTime(formatTime(origJumpTo));
     }
     if (userWs) {
       userWs.pause(); setIsPlayingUser(false);
-      userWs.setTime(matchStartTime);
-      setUserTime(formatTime(matchStartTime));
+      userWs.setTime(userJumpTo);
+      setUserTime(formatTime(userJumpTo));
     }
   };
 
@@ -213,14 +243,17 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-start gap-3 mb-2">
                     <button
                       onClick={handlePlayUser}
-                      className="w-10 h-10 shrink-0 rounded-full bg-[#0f62fe] text-white flex items-center justify-center hover:scale-105 transition-transform shadow-sm"
+                      className="w-10 h-10 shrink-0 rounded-full bg-[#0f62fe] text-white flex items-center justify-center hover:scale-105 transition-transform shadow-sm mt-1"
                     >
                       <span className="material-symbols-outlined">{isPlayingUser ? 'pause' : 'play_arrow'}</span>
                     </button>
-                    <div className="flex-1 overflow-hidden relative" ref={userWaveRef}></div>
+                    <div className="flex-1 overflow-hidden relative flex flex-col gap-1">
+                      <div ref={userWaveRef} className="w-full"></div>
+                      <div ref={userSpecRef} className="w-full mt-1 border border-[#e1e1ee] rounded-sm overflow-hidden"></div>
+                    </div>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono text-[#737687]">
                     <span>{userTime}</span>
@@ -254,14 +287,17 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
 
             {/* Original Track Waveform Player */}
             <div className="bg-[#faf8ff] p-4 rounded-lg border border-[#e1e1ee] shadow-sm mb-6">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-start gap-3 mb-2">
                 <button
                   onClick={handlePlayOrig}
-                  className="w-10 h-10 shrink-0 rounded-full bg-white border border-[#ba1a1a] text-[#ba1a1a] flex items-center justify-center hover:bg-[#ffdad6] transition-colors shadow-sm"
+                  className="w-10 h-10 shrink-0 rounded-full bg-white border border-[#ba1a1a] text-[#ba1a1a] flex items-center justify-center hover:bg-[#ffdad6] transition-colors shadow-sm mt-1"
                 >
                   <span className="material-symbols-outlined">{isPlayingOrig ? 'pause' : 'play_arrow'}</span>
                 </button>
-                <div className="flex-1 overflow-hidden relative" ref={origWaveRef}></div>
+                <div className="flex-1 overflow-hidden relative flex flex-col gap-1">
+                  <div ref={origWaveRef} className="w-full"></div>
+                  <div ref={origSpecRef} className="w-full mt-1 border border-[#e1e1ee] rounded-sm overflow-hidden"></div>
+                </div>
               </div>
               <div className="flex justify-between text-[10px] font-mono text-[#737687]">
                 <span>{origTime}</span>
@@ -274,8 +310,8 @@ const ModerationReviewModal = ({ data, onClose, onSuccess }) => {
                 <span className="text-sm font-bold text-[#ba1a1a]">Detection Summary</span>
               </div>
               <p className="text-xs text-[#424656] leading-relaxed">
-                Hệ thống FAISS phát hiện độ tương đồng <strong className="text-[#ba1a1a]">{data.aiScore}%</strong>.
-                Đoạn âm thanh bôi màu <strong className="text-[#ba1a1a]">đỏ</strong> là vùng bị hệ thống AI nghi ngờ sao chép.
+                Hệ thống FAISS phát hiện <strong>{aiMatches.length} đoạn</strong> vi phạm với tổng thời lượng <strong>{aiMatches.length * 5} giây</strong>.
+                Đoạn âm thanh bôi màu <strong className="text-[#ba1a1a]">đỏ</strong> là vùng bị hệ thống AI nghi ngờ sao chép. Hãy xem thêm biểu đồ Spectrogram để xác nhận.
               </p>
             </div>
           </div>

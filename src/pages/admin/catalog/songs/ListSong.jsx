@@ -1,15 +1,14 @@
 import React from 'react';
-import axios from 'axios';
+import api from '../../../../utils/api';
 import { toast } from 'react-toastify';
 
 // Đã nhận thêm biến startIndex để tính STT
 const ListSong = ({ songs, fetchSongs, setView, setEditingId, startIndex = 0 }) => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const removeSong = async (id) => {
         if(!window.confirm("Xóa bài hát này?")) return;
         try {
-            const response = await axios.post(`${backendUrl}/api/song/remove`, { id });
+            const response = await api.post(`/song/remove`, { id });
             if (response.data.success) {
                 toast.success("Đã xóa!");
                 fetchSongs();
@@ -63,8 +62,8 @@ const ListSong = ({ songs, fetchSongs, setView, setEditingId, startIndex = 0 }) 
                                     <td className="py-3 px-4 border-b border-[#e1e1ee]">
                                         <div className="flex items-center gap-3">
                                             <img src={item.imageUrl} alt="" className="w-10 h-10 object-cover rounded shadow-sm border border-[#e1e1ee]" />
-                                            <p className="font-semibold text-[#191b24] text-sm max-w-[180px] truncate" title={item.name}>
-                                                {item.name}
+                                            <p className="font-semibold text-[#191b24] text-sm max-w-[180px] truncate" title={item.title}>
+                                                {item.title}
                                             </p>
                                         </div>
                                     </td>

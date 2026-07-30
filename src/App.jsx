@@ -17,6 +17,12 @@ import ArtistManager from "./pages/admin/catalog/artists/ArtistManager.jsx";
 import AlbumManager from "./pages/admin/catalog/albums/AlbumManager.jsx";
 import CategoryManager from "./pages/admin/catalog/categories/CategoryManager.jsx";
 import ArtistRequests from "./pages/admin/artist-requests/ArtistRequests.jsx";
+import PremiumPlanManager from "./pages/admin/premium/PlanManager.jsx";
+import CouponManager from "./pages/admin/premium/CouponManager.jsx";
+import PremiumUserManager from "./pages/admin/premium/PremiumUserManager.jsx";
+import TransactionManager from "./pages/admin/premium/TransactionManager.jsx";
+import AdManager from "./pages/admin/ads/AdManager.jsx";
+import UserManager from "./pages/admin/users/UserManager.jsx";
 
 // Artist (Studio) Pages
 import ArtistDashboard from "./pages/artist/dashboard/ArtistDashboard.jsx";
@@ -72,6 +78,12 @@ const App = () => {
           <Route path="catalog/albums" element={<AlbumManager />} />
           <Route path="catalog/categories" element={<CategoryManager />} />
           <Route path="artist-requests" element={<ArtistRequests />} />
+          <Route path="premium/plans" element={<PremiumPlanManager />} />
+          <Route path="premium/coupons" element={<CouponManager />} />
+          <Route path="premium/users" element={<PremiumUserManager />} />
+          <Route path="premium/transactions" element={<TransactionManager />} />
+          <Route path="ads" element={<AdManager />} />
+          <Route path="users" element={<UserManager />} />
         </Route>
 
         {/* ==================== STUDIO (ARTIST) ROUTES ==================== */}

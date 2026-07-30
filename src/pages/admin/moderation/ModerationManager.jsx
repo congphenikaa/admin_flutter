@@ -24,6 +24,7 @@ const ModerationManager = () => {
           // THÊM 2 DÒNG NÀY VÀO ĐỂ MODAL NHẬN ĐƯỢC LINK NHẠC/ẢNH
           audioUrl: song.audioUrl, 
           imageUrl: song.imageUrl, 
+          aiMatches: song.aiMatches || [],
           rawSong: song
         }));
         setQueueData(mappedData);

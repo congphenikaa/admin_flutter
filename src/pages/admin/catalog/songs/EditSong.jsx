@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../../../utils/api';
 import { toast } from 'react-toastify';
 import Select from 'react-select'; 
 
@@ -32,9 +32,9 @@ const EditSong = ({ setView, fetchSongs, editingId, songs }) => {
         const loadOptions = async () => {
             try {
                 const [resAlbum, resArtist, resCat] = await Promise.all([
-                    axios.get(`${url}/api/album/list`),
-                    axios.get(`${url}/api/artist/list`),
-                    axios.get(`${url}/api/category/list`)
+                    api.get(`/album/list`),
+                    api.get(`/artist/list`),
+                    api.get(`/category/list`)
                 ]);
                 if(resAlbum.data.success) setAlbumData(resAlbum.data.albums);
                 if(resArtist.data.success) setArtistData(resArtist.data.artists);
@@ -86,7 +86,7 @@ const EditSong = ({ setView, fetchSongs, editingId, songs }) => {
             if(image) formData.append("image", image);
             if(audio) formData.append("audio", audio);
 
-            const response = await axios.post(`${url}/api/song/update`, formData);
+            const response = await api.post(`/song/update`, formData);
             if (response.data.success) {
                 toast.success("Cập nhật thành công");
                 await fetchSongs();

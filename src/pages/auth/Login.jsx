@@ -84,7 +84,7 @@ const Login = ({ setToken, setRole }) => {
                 <div 
                     className="absolute inset-0 z-0 opacity-50 mix-blend-luminosity"
                     style={{ 
-                        backgroundImage: "url('https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2070&auto=format&fit=crop')", 
+                        backgroundImage: "url('./src/assets/photo-1598488035139-bdbb2231ce04.jpg')", 
                         backgroundSize: 'cover', 
                         backgroundPosition: 'center' 
                     }}
@@ -173,7 +173,7 @@ const Login = ({ setToken, setRole }) => {
                         onClick={() => googleLogin()}
                         className="w-full flex items-center justify-center gap-3 bg-[#201f1f] border border-[#3d4a3d] hover:bg-[#2a2a2a] text-white font-semibold py-3 rounded-full transition-all"
                     >
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                        <img src="./src/assets/google-color.svg" alt="Google" className="w-5 h-5" />
                         Continue with Google
                     </button>
                 </div>

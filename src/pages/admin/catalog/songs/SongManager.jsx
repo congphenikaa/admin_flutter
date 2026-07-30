@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import axios from 'axios'
+import api from '../../../../utils/api'
 import { toast } from 'react-toastify'
 import { useOutletContext } from 'react-router-dom'
 import ListSong from './ListSong'
@@ -24,7 +24,7 @@ const SongManager = () => {
     // Fetch Songs
     const fetchSongs = useCallback(async () => {
         try {
-            const response = await axios.get(`${backendUrl}/api/song/list`);
+            const response = await api.get(`/song/list`);
             if (response.data.success) {
                 setSongs(response.data.songs);
             }
@@ -36,7 +36,7 @@ const SongManager = () => {
     // Fetch Categories (Mới)
     const fetchCategories = useCallback(async () => {
         try {
-            const response = await axios.get(`${backendUrl}/api/category/list`);
+            const response = await api.get(`/category/list`);
             if (response.data.success) {
                 setCategories(response.data.categories || []);
             }
@@ -61,8 +61,6 @@ const SongManager = () => {
         let statusMatch = true;
         if (statusFilter !== 'All') {
             if (statusFilter === 'Live') statusMatch = song.status === 'live';
-            else if (statusFilter === 'Pending_ai') statusMatch = song.status === 'pending_ai';
-            else if (statusFilter === 'Flagged') statusMatch = song.status === 'flagged';
         }
 
         // Genre Filter (so sánh theo _id)
