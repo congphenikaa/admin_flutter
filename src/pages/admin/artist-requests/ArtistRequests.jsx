@@ -6,6 +6,10 @@ const ArtistRequests = () => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('pending');
+    
+    // Thêm state để quản lý việc hiển thị chi tiết đơn
+    const [selectedRequest, setSelectedRequest] = useState(null); 
+    
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const fetchRequests = async (status = '') => {
@@ -35,6 +39,7 @@ const ArtistRequests = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success("Đã duyệt đơn thành công");
+            setSelectedRequest(null); // Đóng modal sau khi duyệt
             fetchRequests(filterStatus);
         } catch (error) {
             toast.error("Duyệt đơn thất bại");
@@ -52,6 +57,7 @@ const ArtistRequests = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             toast.success("Đã từ chối đơn");
+            setSelectedRequest(null); // Đóng modal sau khi từ chối
             fetchRequests(filterStatus);
         } catch (error) {
             toast.error("Từ chối đơn thất bại");
@@ -66,7 +72,7 @@ const ArtistRequests = () => {
     };
 
     return (
-        <div className="p-6">
+        <div className="p-6 relative">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-[#191b24]">Quản lý đơn đề xuất Artist</h1>
@@ -119,28 +125,77 @@ const ArtistRequests = () => {
                                             {req.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        {req.status === 'pending' && (
-                                            <div className="flex justify-center gap-2">
-                                                <button 
-                                                    onClick={() => handleApprove(req._id)}
-                                                    className="px-4 py-1.5 text-sm bg-[#004ccd] text-white rounded-md hover:bg-[#003da9]"
-                                                >
-                                                    Duyệt
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleReject(req._id)}
-                                                    className="px-4 py-1.5 text-sm bg-[#ba1a1a] text-white rounded-md hover:bg-[#93000a]"
-                                                >
-                                                    Từ chối
-                                                </button>
-                                            </div>
-                                        )}
+                                    <td className="px-6 py-4 text-center">
+                                        {/* Thay đổi nút hành động thành nút Xem chi tiết */}
+                                        <button 
+                                            onClick={() => setSelectedRequest(req)}
+                                            className="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                                        >
+                                            Xem chi tiết
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Modal hiển thị chi tiết */}
+            {selectedRequest && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                            <h2 className="text-xl font-semibold">Chi tiết đơn đề xuất</h2>
+                            <button 
+                                onClick={() => setSelectedRequest(null)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-500 uppercase">Thông tin người dùng</h3>
+                                <p className="mt-1"><span className="font-medium">Tài khoản:</span> {selectedRequest.user?.username} ({selectedRequest.user?.email})</p>
+                            </div>
+                            
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-500 uppercase">Thông tin Artist</h3>
+                                <p className="mt-1"><span className="font-medium">Nghệ danh:</span> {selectedRequest.artistName}</p>
+                                <p className="mt-1"><span className="font-medium">Thể loại:</span> {selectedRequest.genre?.join(', ') || 'Không có'}</p>
+                                <p className="mt-1"><span className="font-medium">Giới thiệu:</span> {selectedRequest.bio || 'Không có'}</p>
+                                <p className="mt-1"><span className="font-medium">Lý do:</span> {selectedRequest.reason || 'Không có'}</p>
+                            </div>
+
+                            {selectedRequest.socialLinks && (
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-500 uppercase">Mạng xã hội</h3>
+                                    {selectedRequest.socialLinks.instagram && <p className="mt-1"><span className="font-medium">Instagram:</span> <a href={selectedRequest.socialLinks.instagram} target="_blank" rel="noreferrer" className="text-blue-600 underline">{selectedRequest.socialLinks.instagram}</a></p>}
+                                    {selectedRequest.socialLinks.youtube && <p className="mt-1"><span className="font-medium">YouTube:</span> <a href={selectedRequest.socialLinks.youtube} target="_blank" rel="noreferrer" className="text-blue-600 underline">{selectedRequest.socialLinks.youtube}</a></p>}
+                                    {selectedRequest.socialLinks.tiktok && <p className="mt-1"><span className="font-medium">TikTok:</span> <a href={selectedRequest.socialLinks.tiktok} target="_blank" rel="noreferrer" className="text-blue-600 underline">{selectedRequest.socialLinks.tiktok}</a></p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedRequest.status === 'pending' && (
+                            <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50 rounded-b-xl">
+                                <button 
+                                    onClick={() => handleReject(selectedRequest._id)}
+                                    className="px-6 py-2 bg-[#ba1a1a] text-white rounded-md hover:bg-[#93000a] font-medium"
+                                >
+                                    Từ chối
+                                </button>
+                                <button 
+                                    onClick={() => handleApprove(selectedRequest._id)}
+                                    className="px-6 py-2 bg-[#004ccd] text-white rounded-md hover:bg-[#003da9] font-medium"
+                                >
+                                    Phê duyệt
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

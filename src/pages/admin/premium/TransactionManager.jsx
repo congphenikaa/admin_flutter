@@ -105,6 +105,8 @@ const TransactionManager = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [expanded, setExpanded]         = useState(null);
   const [page, setPage]                 = useState(1);
+  // transactionId đang chờ action (để hiện spinner trên nút)
+  const [actionLoading, setActionLoading] = useState(null);
 
   // Stats được load riêng từ endpoint /stats — phản ánh TOÀN BỘ DB
   const [stats, setStats] = useState({
@@ -187,6 +189,57 @@ const TransactionManager = () => {
     fetchStats();
     fetchTransactions({ page: 1, status: statusFilter, search: searchQuery });
     setPage(1);
+  };
+
+  // Hủy giao dịch pending/failed → cancelled
+  const handleCancel = async (tx) => {
+    if (!window.confirm(`Hủy giao dịch ${tx.orderId}?\nHành động này không thể hoàn tác.`)) return;
+    setActionLoading(tx._id);
+    try {
+      const res = await api.patch(`/payment/admin/transactions/${tx._id}/cancel`);
+      if (res.data.success) {
+        toast.success('Đã hủy giao dịch thành công');
+        // Cập nhật local state ngay — không cần reload toàn bộ
+        setTransactions((prev) =>
+          prev.map((t) => t._id === tx._id ? { ...t, status: 'cancelled' } : t)
+        );
+        fetchStats(); // Refresh số liệu thống kê
+      } else {
+        toast.error(res.data.message || 'Không thể hủy giao dịch');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Lỗi kết nối server');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Xác nhận thủ công → success + cấp premium cho user
+  const handleResolve = async (tx) => {
+    if (!window.confirm(
+      `Xác nhận cấp Premium thủ công cho giao dịch:\n${tx.orderId}\n\nHành động này sẽ cấp Premium ngay cho user.`
+    )) return;
+    setActionLoading(tx._id + '_resolve');
+    try {
+      const res = await api.post(`/payment/admin/transactions/${tx._id}/resolve`);
+      if (res.data.success) {
+        toast.success(res.data.message || 'Đã cấp Premium thành công!');
+        setTransactions((prev) =>
+          prev.map((t) =>
+            t._id === tx._id
+              ? { ...t, status: 'success', premiumExpiresAt: res.data.premiumExpiresAt }
+              : t
+          )
+        );
+        fetchStats();
+      } else {
+        toast.error(res.data.message || 'Không thể xử lý giao dịch');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Lỗi kết nối server');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -368,7 +421,7 @@ const TransactionManager = () => {
                         {isExpanded && (
                           <tr className="bg-[#faf8ff]">
                             <td colSpan={8} className="px-6 py-4 border-b border-[#e1e1ee]">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm mb-4">
                                 <div>
                                   <p className="text-[10px] text-[#737687] font-semibold mb-0.5">Order ID</p>
                                   <p className="text-[#191b24] text-xs font-mono break-all">{tx.orderId}</p>
@@ -396,10 +449,49 @@ const TransactionManager = () => {
                                 {tx.note && (
                                   <div className="col-span-2">
                                     <p className="text-[10px] text-[#737687] font-semibold mb-0.5">Ghi chú</p>
-                                    <p className="text-[#424656] text-xs">{tx.note}</p>
+                                    <p className="text-[#424656] text-xs italic">{tx.note}</p>
                                   </div>
                                 )}
                               </div>
+
+                              {/* Action buttons — chỉ hiện với pending/failed */}
+                              {(tx.status === 'pending' || tx.status === 'failed') && (
+                                <div className="flex items-center gap-2 pt-3 border-t border-[#e1e1ee]">
+                                  <p className="text-[10px] text-[#737687] font-semibold mr-1">Thao tác admin:</p>
+
+                                  {/* Nút Hủy giao dịch */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleCancel(tx); }}
+                                    disabled={actionLoading === tx._id || actionLoading === tx._id + '_resolve'}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    {actionLoading === tx._id ? (
+                                      <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                                    ) : (
+                                      <span className="material-symbols-outlined text-[14px]">cancel</span>
+                                    )}
+                                    Hủy giao dịch
+                                  </button>
+
+                                  {/* Nút Xác nhận thành công + cấp Premium */}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleResolve(tx); }}
+                                    disabled={actionLoading === tx._id || actionLoading === tx._id + '_resolve'}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-green-400 text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    {actionLoading === tx._id + '_resolve' ? (
+                                      <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                                    ) : (
+                                      <span className="material-symbols-outlined text-[14px]">verified</span>
+                                    )}
+                                    Xác nhận & Cấp Premium
+                                  </button>
+
+                                  <p className="text-[10px] text-[#aaaaaa] ml-1">
+                                    Dùng khi IPN bị mất hoặc giao dịch sandbox bị từ chối
+                                  </p>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         )}

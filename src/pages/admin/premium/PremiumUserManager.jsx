@@ -19,7 +19,7 @@ const formatDate = (dateStr) => {
 const daysLeft = (expiresAt) => {
   if (!expiresAt) return null;
   const diff = Math.ceil((new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24));
-  return diff;
+  return diff; // có thể âm nếu hết hạn
 };
 
 const initialGrantForm = {
@@ -256,7 +256,8 @@ const PremiumUserManager = () => {
                 {users.length > 0 ? users.map((user, idx) => {
                   const itemIndex = (page - 1) * limit + idx + 1;
                   const remaining = daysLeft(user.premiumExpiresAt);
-                  const isExpired = user.isPremium && remaining !== null && remaining < 0;
+                  // Dùng isExpired từ backend (đã tính chính xác), fallback nếu không có
+                  const isExpired = user.isExpired || (!user.isPremium && user.premiumExpiresAt && remaining !== null && remaining <= 0);
                   const isWarn = user.isPremium && remaining !== null && remaining >= 0 && remaining <= 7;
 
                   return (
@@ -287,17 +288,21 @@ const PremiumUserManager = () => {
                       <td className="py-3 px-4 border-b border-[#e1e1ee] text-sm text-[#424656]">{formatDate(user.premiumGrantedAt)}</td>
                       <td className="py-3 px-4 border-b border-[#e1e1ee] text-sm text-[#424656]">
                         <div>{formatDate(user.premiumExpiresAt)}</div>
-                        {remaining !== null && (
-                          <div className={`text-xs font-medium mt-0.5 ${isExpired ? 'text-red-500' : isWarn ? 'text-orange-500' : 'text-green-600'}`}>
-                            {isExpired ? `Hết hạn ${Math.abs(remaining)} ngày trước` : `Còn ${remaining} ngày`}
+                        {user.premiumExpiresAt && (
+                          <div className={`text-xs font-medium mt-0.5 ${isExpired ? 'text-red-500' : isWarn ? 'text-orange-500' : (user.isPremium ? 'text-green-600' : 'text-[#737687]')}`}>
+                            {isExpired
+                              ? 'Đã hết hạn'
+                              : user.isPremium && remaining !== null
+                                ? `Còn ${remaining} ngày`
+                                : ''}
                           </div>
                         )}
                       </td>
                       <td className="py-3 px-4 border-b border-[#e1e1ee]">
-                        {!user.isPremium ? (
+                        {isExpired ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Đã hết hạn</span>
+                        ) : !user.isPremium ? (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#f2f3ff] text-[#737687]">Free</span>
-                        ) : isExpired ? (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Hết hạn</span>
                         ) : isWarn ? (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Sắp hết hạn</span>
                         ) : (
@@ -306,13 +311,17 @@ const PremiumUserManager = () => {
                       </td>
                       <td className="py-3 px-4 border-b border-[#e1e1ee] text-right">
                         <div className="flex gap-2 justify-end opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Nút cấp / gia hạn: hiển thị với mọi user */}
                           <button
                             onClick={() => openGrant(user)}
                             className="p-1.5 text-[#737687] hover:text-[#0f62fe] hover:bg-[#ecedfa] rounded transition-colors cursor-pointer"
-                            title={user.isPremium ? 'Gia hạn / Nâng cấp' : 'Cấp Premium'}
+                            title={user.isPremium ? 'Gia hạn / Nâng cấp' : isExpired ? 'Gia hạn lại' : 'Cấp Premium'}
                           >
-                            <span className="material-symbols-outlined text-[18px]">{user.isPremium ? 'autorenew' : 'workspace_premium'}</span>
+                            <span className="material-symbols-outlined text-[18px]">
+                              {user.isPremium ? 'autorenew' : isExpired ? 'restart_alt' : 'workspace_premium'}
+                            </span>
                           </button>
+                          {/* Nút thu hồi: chỉ hiện khi đang active (isPremium = true), KHÔNG hiện khi đã hết hạn */}
                           {user.isPremium && (
                             <button
                               onClick={() => handleRevoke(user)}
